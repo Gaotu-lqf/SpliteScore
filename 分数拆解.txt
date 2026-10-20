@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>考研分数拆解工具</title>
+<style>
+  :root{
+    --ink:#1b2030;
+    --muted:#6c7488;
+    --line:#e6e9f2;
+    --brand:#5b5bd6;
+    --brand2:#8b5cf6;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:#f3f5fb;
+    background-image:radial-gradient(900px 400px at 15% -10%, #e6e9ff 0%, transparent 60%),
+                     radial-gradient(700px 400px at 95% 0%, #f0e8ff 0%, transparent 55%);
+    color:var(--ink);
+    min-height:100vh;
+    padding:34px 16px 70px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:960px;margin:0 auto;}
+
+  /* ---------- 顶部标题 ---------- */
+  .hero{text-align:center;margin-bottom:24px;}
+  .hero h1{
+    margin:0 0 8px;
+    font-size:27px;
+    letter-spacing:.5px;
+    background:linear-gradient(120deg,#4f46e5,#8b5cf6 60%,#d946ef);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .hero p{margin:0;color:var(--muted);font-size:13.5px;}
+
+  /* ---------- 控制面板 ---------- */
+  .panel{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:18px 20px;
+    display:flex;
+    gap:16px;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    box-shadow:0 6px 28px rgba(30,40,90,.07);
+  }
+  .field{display:flex;flex-direction:column;gap:7px;}
+  .field label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.4px;}
+  .field input{
+    height:42px;
+    border-radius:11px;
+    border:1.5px solid #e2e6f0;
+    padding:0 13px;
+    font-size:15px;
+    font-family:inherit;
+    background:#fafbff;
+    color:var(--ink);
+    outline:none;
+    transition:.18s;
+  }
+  .field input{width:120px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .field input:focus{
+    border-color:#8b8bf0;
+    background:#fff;
+    box-shadow:0 0 0 3.5px rgba(99,102,241,.13);
+  }
+  .btn{
+    height:42px;padding:0 22px;border-radius:11px;border:none;
+    font-size:14.5px;font-weight:600;font-family:inherit;cursor:pointer;
+    transition:.18s;
+  }
+  .btn-primary{
+    background:linear-gradient(135deg,#6366f1,#8b5cf6);
+    color:#fff;
+    box-shadow:0 7px 18px rgba(99,102,241,.32);
+  }
+  .btn-primary:hover{transform:translateY(-1.5px);box-shadow:0 10px 22px rgba(99,102,241,.42);}
+  .btn-primary:active{transform:translateY(0);}
+  .btn-ghost{
+    background:#f3f4fb;color:#5b5bd6;border:1.5px solid #e0e2f5;
+  }
+  .btn-ghost:hover{background:#eaecfa;}
+
+  /* ---------- 自定义下拉框（贴合主题） ---------- */
+  .dropdown{position:relative;min-width:290px;}
+  .dropdown-trigger{
+    width:100%;height:42px;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:0 13px;
+    border-radius:11px;
+    border:1.5px solid #e2e6f0;
+    background:#fafbff;
+    color:var(--ink);
+    font-size:13.5px;font-family:inherit;font-weight:600;
+    cursor:pointer;
+    transition:.18s;
+    text-align:left;
+    outline:none;
+  }
+  .dropdown-trigger:hover{border-color:#c7cdf5;background:#fff;}
+  .dropdown.open .dropdown-trigger,
+  .dropdown-trigger:focus-visible{
+    border-color:#8b8bf0;
+    background:#fff;
+    box-shadow:0 0 0 3.5px rgba(99,102,241,.13);
+  }
+  .dropdown-trigger > span{
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .dropdown-arrow{
+    width:14px;height:14px;flex:none;color:#8b8bf0;
+    transition:transform .22s cubic-bezier(.4,0,.2,1);
+  }
+  .dropdown.open .dropdown-arrow{transform:rotate(180deg);}
+  .dropdown-menu{
+    position:absolute;z-index:60;top:calc(100% + 8px);left:0;right:0;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:6px;
+    box-shadow:0 18px 44px rgba(30,40,90,.18);
+    opacity:0;transform:translateY(-6px) scale(.98);
+    pointer-events:none;
+    transition:.18s cubic-bezier(.4,0,.2,1);
+    max-height:300px;overflow:auto;
+    transform-origin:top center;
+  }
+  .dropdown.open .dropdown-menu{
+    opacity:1;transform:translateY(0) scale(1);pointer-events:auto;
+  }
+  .dropdown-option{
+    display:flex;align-items:center;gap:9px;
+    padding:10px 12px;
+    border-radius:9px;
+    font-size:13.5px;
+    color:#3a4257;
+    cursor:pointer;
+    transition:.15s;
+    line-height:1.45;
+    outline:none;
+  }
+  .dropdown-option:hover,
+  .dropdown-option:focus-visible{background:#f2f3ff;color:#4f46e5;}
+  .dropdown-option.active{
+    background:linear-gradient(135deg,#eef0ff,#f6eeff);
+    color:#4f46e5;font-weight:700;
+  }
+  .dropdown-option .dot{
+    width:7px;height:7px;border-radius:50%;background:#c7cdf5;flex:none;
+    transition:.15s;
+  }
+  .dropdown-option.active .dot{
+    background:#6366f1;
+    box-shadow:0 0 0 3px rgba(99,102,241,.18);
+  }
+
+  /* ---------- 汇总条 ---------- */
+  .summary{
+    display:flex;gap:12px;margin-top:16px;flex-wrap:wrap;
+  }
+  .sum-block{
+    flex:1 1 150px;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:15px;
+    padding:14px 18px;
+    box-shadow:0 4px 18px rgba(30,40,90,.05);
+  }
+  .sum-label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.4px;margin-bottom:5px;}
+  .sum-val{
+    font-size:23px;font-weight:800;
+    font-variant-numeric:tabular-nums;
+    color:#4f46e5;
+    letter-spacing:-.5px;
+  }
+  .sum-block:nth-child(2) .sum-val{color:#0ea5a5;}
+  .sum-block:nth-child(3) .sum-val{color:#d9468c;}
+
+  /* ---------- 科目卡片 ---------- */
+  .subjects{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(258px,1fr));
+    gap:14px;
+    margin-top:16px;
+  }
+  .card{
+    background:#fff;
+    border:1.5px solid var(--line);
+    border-radius:16px;
+    padding:15px 16px 13px;
+    box-shadow:0 4px 18px rgba(30,40,90,.055);
+    transition:border-color .2s, box-shadow .2s, transform .2s;
+  }
+  .card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(30,40,90,.1);}
+  .card.locked{
+    border-color:#c7d2fe;
+    background:linear-gradient(180deg,#fdfdff,#f6f7ff);
+    box-shadow:0 6px 22px rgba(99,102,241,.14);
+  }
+  .card-top{
+    display:flex;justify-content:space-between;align-items:baseline;
+    margin-bottom:12px;gap:10px;
+  }
+  .card-name{
+    flex:1;min-width:0;
+    font-size:14.5px;font-weight:700;letter-spacing:.2px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    cursor:text;
+    border-radius:5px;
+    transition:background .15s;
+  }
+  .card-name:hover{background:#f2f3ff;}
+  .card-full{flex:none;font-size:11.5px;color:var(--muted);font-weight:600;}
+  .rename-input{
+    flex:1;min-width:0;
+    height:28px;
+    border:1.5px solid #8b8bf0;
+    border-radius:7px;
+    background:#fff;
+    font-size:14px;font-weight:700;
+    font-family:inherit;
+    color:#4f46e5;
+    padding:0 8px;
+    outline:none;
+    box-shadow:0 0 0 3px rgba(99,102,241,.13);
+  }
+  .card-mid{display:flex;align-items:center;gap:8px;}
+  .score-input{
+    width:92px;height:46px;
+    border-radius:12px;
+    border:1.5px solid #e2e6f0;
+    background:#fafbff;
+    font-size:24px;font-weight:800;
+    text-align:center;
+    color:#4f46e5;
+    font-family:inherit;
+    font-variant-numeric:tabular-nums;
+    outline:none;
+    transition:.18s;
+    -moz-appearance:textfield;
+  }
+  .score-input::-webkit-outer-spin-button,
+  .score-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .score-input:focus{
+    border-color:#8b8bf0;background:#fff;
+    box-shadow:0 0 0 3.5px rgba(99,102,241,.13);
+  }
+  .unit{font-size:12.5px;color:var(--muted);font-weight:600;}
+  .lock-btn{
+    margin-left:auto;
+    width:34px;height:34px;
+    border-radius:10px;
+    border:1.5px solid #e6e9f2;
+    background:#fafbff;
+    cursor:pointer;
+    font-size:14px;
+    line-height:1;
+    display:flex;align-items:center;justify-content:center;
+    transition:.18s;
+    padding:0;
+  }
+  .lock-btn:hover{background:#eef0fb;border-color:#c7d2fe;}
+  .card.locked .lock-btn{background:#eef0ff;border-color:#c7d2fe;}
+  .bar{
+    height:8px;background:#eef1f8;border-radius:99px;overflow:hidden;margin-top:13px;
+  }
+  .bar-fill{
+    height:100%;width:0;border-radius:99px;
+    transition:width .4s cubic-bezier(.4,0,.2,1),background .3s;
+    background:linear-gradient(90deg,#8b5cf6,#6366f1);
+  }
+  .card-foot{
+    display:flex;justify-content:space-between;
+    margin-top:9px;
+    font-size:11.5px;color:var(--muted);font-weight:600;
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ---------- 底部说明 ---------- */
+  .tips{
+    margin-top:22px;
+    background:#fff;
+    border:1px dashed #dfe3f2;
+    border-radius:15px;
+    padding:15px 20px;
+    font-size:12.5px;
+    line-height:2;
+    color:var(--muted);
+  }
+  .tips b{color:#4f46e5;}
+
+  /* ---------- Toast ---------- */
+  .toast{
+    position:fixed;
+    left:50%;bottom:38px;
+    transform:translate(-50%,20px);
+    background:#1b2030;
+    color:#fff;
+    font-size:13.5px;
+    font-weight:500;
+    padding:11px 22px;
+    border-radius:12px;
+    opacity:0;
+    pointer-events:none;
+    transition:.25s;
+    box-shadow:0 10px 30px rgba(0,0,0,.25);
+    z-index:99;
+    max-width:86vw;
+    text-align:center;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0);}
+
+  @media (max-width:560px){
+    .panel{padding:16px;}
+    .field{flex:1 1 100%;}
+    .field input{width:100%;}
+    .field .dropdown{min-width:100%;width:100%;}
+    .btn{flex:1 1 auto;}
+    .hero h1{font-size:22px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="hero">
+    <h1>考研分数拆解工具</h1>
+    <p>输入目标总分 · 生成各科分数 · 改动一科，其余自动重分配</p>
+  </header>
+
+  <section class="panel">
+    <div class="field">
+      <label>目标总分</label>
+      <input id="totalInput" type="number" min="0" step="1" value="380">
+    </div>
+    <div class="field">
+      <label>科目组合</label>
+      <div class="dropdown" id="templateDropdown">
+        <button type="button" class="dropdown-trigger" id="dropdownTrigger"
+                aria-haspopup="listbox" aria-expanded="false">
+          <span id="dropdownLabel"></span>
+          <svg class="dropdown-arrow" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="dropdown-menu" id="dropdownMenu" role="listbox" aria-label="科目组合"></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="generateBtn">随机生成</button>
+    <button class="btn btn-ghost" id="unlockBtn">全部解锁</button>
+  </section>
+
+  <section class="summary">
+    <div class="sum-block">
+      <div class="sum-label">目标总分</div>
+      <div class="sum-val" id="sumTotal">380</div>
+    </div>
+    <div class="sum-block">
+      <div class="sum-label">当前合计</div>
+      <div class="sum-val" id="sumCurrent">380</div>
+    </div>
+    <div class="sum-block">
+      <div class="sum-label">整体得分率</div>
+      <div class="sum-val" id="sumRate">76.0%</div>
+    </div>
+  </section>
+
+  <section class="subjects" id="subjects"></section>
+
+  <footer class="tips">
+    <div>• <b>双击科目名称</b>即可重命名（回车确认，Esc 取消）。</div>
+    <div>• 修改任意一科分数后，该科会被 <b>锁定</b>，剩余总分按各科现有比例自动分配给未锁定的科目。</div>
+    <div>• 点击科目右侧的 🔒 可解锁，解锁后该科会参与下一次的重新分配。</div>
+    <div>• 专业课分值按科目数量区分：<b>1 门</b>为 150 分或 300 分，<b>2 门</b>则各 150 分。</div>
+    <div>• 生成的分数仅为满足总分的随机组合，各科得分率已限制在常见区间内，仅供参考。</div>
+  </footer>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   科目模板
+   ========================================================= */
+const TEMPLATES = {
+  math: {
+    label: '考数学：政治 + 外语 + 数学 + 专业课',
+    defaultTotal: 500,
+    subjects: [
+      { name: '思想政治理论', full: 100, min: 0.52, max: 0.85 },
+      { name: '外国语',       full: 100, min: 0.42, max: 0.85 },
+      { name: '数学',         full: 150, min: 0.35, max: 0.92 },
+      { name: '专业课',       full: 150, min: 0.50, max: 0.95 }
+    ]
+  },
+  two: {
+    label: '两门专业课：政治 + 外语 + 专业课一 + 专业课二',
+    defaultTotal: 500,
+    subjects: [
+      { name: '思想政治理论', full: 100, min: 0.52, max: 0.85 },
+      { name: '外国语',       full: 100, min: 0.42, max: 0.85 },
+      { name: '专业课一',     full: 150, min: 0.50, max: 0.95 },
+      { name: '专业课二',     full: 150, min: 0.50, max: 0.95 }
+    ]
+  },
+  one300: {
+    label: '单门300分：政治 + 外语 + 专业课（统考类）',
+    defaultTotal: 500,
+    subjects: [
+      { name: '思想政治理论', full: 100, min: 0.52, max: 0.85 },
+      { name: '外国语',       full: 100, min: 0.42, max: 0.85 },
+      { name: '专业课（300分）', full: 300, min: 0.50, max: 0.92 }
+    ]
+  },
+  mgmt: {
+    label: '管理类联考：管综 + 外语（总分300）',
+    defaultTotal: 300,
+    subjects: [
+      { name: '管理类综合能力', full: 200, min: 0.50, max: 0.90 },
+      { name: '外国语',         full: 100, min: 0.45, max: 0.88 }
+    ]
+  }
+};
+
+/* =========================================================
+   状态
+   ========================================================= */
+const state = {
+  template: 'math',
+  total: 380,
+  subjects: []
+};
+let els = [];
+
+/* =========================================================
+   工具函数
+   ========================================================= */
+function rateColor(rate){
+  const r = Math.max(0, Math.min(1, rate));
+  const hue = Math.round(r * 125);
+  return `linear-gradient(90deg, hsl(${hue} 78% 62%), hsl(${hue} 78% 50%))`;
+}
+
+let toastTimer = null;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* =========================================================
+   分配算法
+   ========================================================= */
+function distribute(total, fulls, weights){
+  const n = fulls.length;
+  const vals = new Array(n).fill(0);
+  let rem = total;
+  let active = [];
+  for (let i = 0; i < n; i++) active.push(i);
+
+  let guard = 0;
+  while (rem > 1e-9 && active.length && guard++ < 200){
+    let wsum = 0;
+    for (const i of active) wsum += weights[i];
+    if (wsum <= 0) break;
+
+    const nextActive = [];
+    let used = 0;
+    for (const i of active){
+      const add = rem * weights[i] / wsum;
+      const room = fulls[i] - vals[i];
+      if (add >= room - 1e-9){
+        vals[i] = fulls[i];
+        used += room;
+      } else {
+        vals[i] += add;
+        used += add;
+        nextActive.push(i);
+      }
+    }
+    rem -= used;
+    if (rem < 0) rem = 0;
+    if (nextActive.length === active.length) break;
+    active = nextActive;
+  }
+
+  for (let i = 0; i < n; i++) vals[i] = Math.round(vals[i]);
+  let diff = Math.round(total) - vals.reduce((a, b) => a + b, 0);
+  let g2 = 0;
+  while (diff !== 0 && g2++ < 6000){
+    let changed = false;
+    for (let i = 0; i < n && diff !== 0; i++){
+      if (diff > 0 && vals[i] < fulls[i]){ vals[i]++; diff--; changed = true; }
+      else if (diff < 0 && vals[i] > 0){ vals[i]--; diff++; changed = true; }
+    }
+    if (!changed) break;
+  }
+  return vals;
+}
+
+/* =========================================================
+   科目构建 / 渲染
+   ========================================================= */
+function buildSubjects(){
+  const tpl = TEMPLATES[state.template];
+  state.subjects = tpl.subjects.map(s => ({
+    name: s.name, full: s.full, min: s.min, max: s.max,
+    value: 0, locked: false
+  }));
+}
+
+function startRename(i, nameEl){
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'rename-input';
+  input.value = state.subjects[i].name;
+  input.maxLength = 24;
+  nameEl.replaceWith(input);
+  input.focus();
+  input.select();
+
+  const finish = (commit) => {
+    if (!input.isConnected) return;
+    const val = input.value.trim();
+    if (commit && val) state.subjects[i].name = val;
+    nameEl.textContent = state.subjects[i].name;
+    input.replaceWith(nameEl);
+  };
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter'){ e.preventDefault(); finish(true); }
+    else if (e.key === 'Escape'){ e.preventDefault(); finish(false); }
+  });
+  input.addEventListener('blur', () => finish(true));
+}
+
+function renderSubjects(){
+  const wrap = document.getElementById('subjects');
+  wrap.innerHTML = '';
+  els = [];
+
+  state.subjects.forEach((s, i) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const top = document.createElement('div');
+    top.className = 'card-top';
+    const nameEl = document.createElement('span');
+    nameEl.className = 'card-name';
+    nameEl.textContent = s.name;
+    nameEl.title = '双击可重命名';
+    const fullEl = document.createElement('span');
+    fullEl.className = 'card-full';
+    fullEl.textContent = '满分 ' + s.full;
+    top.append(nameEl, fullEl);
+
+    const mid = document.createElement('div');
+    mid.className = 'card-mid';
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.className = 'score-input';
+    input.min = 0;
+    input.max = s.full;
+    input.step = 1;
+    const unit = document.createElement('span');
+    unit.className = 'unit';
+    unit.textContent = '分';
+    const lock = document.createElement('button');
+    lock.type = 'button';
+    lock.className = 'lock-btn';
+    mid.append(input, unit, lock);
+
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    const fill = document.createElement('div');
+    fill.className = 'bar-fill';
+    bar.appendChild(fill);
+
+    const foot = document.createElement('div');
+    foot.className = 'card-foot';
+    const rateEl = document.createElement('span');
+    const deltaEl = document.createElement('span');
+    foot.append(rateEl, deltaEl);
+
+    card.append(top, mid, bar, foot);
+    wrap.appendChild(card);
+
+    input.addEventListener('input', () => handleInput(i, input.value));
+    input.addEventListener('blur', () => {
+      if (input.value === '' || isNaN(Number(input.value))){
+        input.value = state.subjects[i].value;
+      }
+    });
+    lock.addEventListener('click', () => toggleLock(i));
+    nameEl.addEventListener('dblclick', () => startRename(i, nameEl));
+
+    els.push({ card, input, fill, rate: rateEl, delta: deltaEl, lock });
+  });
+}
+
+function updateUI(){
+  state.subjects.forEach((s, i) => {
+    const e = els[i];
+    if (!e) return;
+    if (document.activeElement !== e.input) e.input.value = s.value;
+
+    const rate = s.full ? s.value / s.full : 0;
+    e.fill.style.width = Math.min(rate * 100, 100) + '%';
+    e.fill.style.background = rateColor(rate);
+    e.rate.textContent = '得分率 ' + (rate * 100).toFixed(1) + '%';
+    e.delta.textContent = '距满分 ' + (s.full - s.value) + ' 分';
+
+    e.card.classList.toggle('locked', s.locked);
+    e.lock.textContent = s.locked ? '🔒' : '🔓';
+    e.lock.title = s.locked ? '点击解锁' : '点击锁定';
+  });
+
+  const sum = state.subjects.reduce((a, s) => a + s.value, 0);
+  const fullSum = state.subjects.reduce((a, s) => a + s.full, 0);
+  document.getElementById('sumTotal').textContent = state.total;
+  document.getElementById('sumCurrent').textContent = sum;
+  document.getElementById('sumRate').textContent =
+    fullSum ? ((sum / fullSum) * 100).toFixed(1) + '%' : '0%';
+}
+
+/* =========================================================
+   随机生成
+   ========================================================= */
+function generateScores(){
+  const subs = state.subjects;
+  const fullSum = subs.reduce((a, s) => a + s.full, 0);
+  const total = Math.min(state.total, fullSum);
+  const targetRate = fullSum ? total / fullSum : 0;
+
+  let vals = subs.map(s => {
+    const noise = (Math.random() - 0.5) * 0.20;
+    let r = targetRate + noise;
+    r = Math.min(Math.max(r, s.min), s.max);
+    return r * s.full;
+  });
+
+  for (let k = 0; k < 600; k++){
+    const S = vals.reduce((a, b) => a + b, 0);
+    const diff = total - S;
+    if (Math.abs(diff) < 0.01) break;
+
+    const idxs = [];
+    for (let i = 0; i < vals.length; i++){
+      if (diff > 0){
+        if (vals[i] < subs[i].full - 1e-9) idxs.push(i);
+      } else {
+        if (vals[i] > 1e-9) idxs.push(i);
+      }
+    }
+    if (!idxs.length) break;
+
+    const caps = idxs.map(i => diff > 0 ? subs[i].full - vals[i] : vals[i]);
+    const capSum = caps.reduce((a, b) => a + b, 0);
+    const step = Math.min(Math.abs(diff), capSum);
+    const sign = Math.sign(diff);
+    idxs.forEach((i, j) => { vals[i] += sign * step * caps[j] / capSum; });
+  }
+
+  vals = vals.map(v => Math.round(v));
+  let d = Math.round(total) - vals.reduce((a, b) => a + b, 0);
+  let guard = 0;
+  while (d !== 0 && guard++ < 6000){
+    let changed = false;
+    for (let i = 0; i < vals.length && d !== 0; i++){
+      if (d > 0 && vals[i] < subs[i].full){ vals[i]++; d--; changed = true; }
+      else if (d < 0 && vals[i] > 0){ vals[i]--; d++; changed = true; }
+    }
+    if (!changed) break;
+  }
+
+  subs.forEach((s, i) => { s.value = vals[i]; s.locked = false; });
+
+  const realSum = subs.reduce((a, s) => a + s.value, 0);
+  if (realSum !== state.total){
+    toast('目标总分超出该组合的合理范围，已按上限生成');
+  }
+}
+
+/* =========================================================
+   重新分配
+   ========================================================= */
+function redistributeAll(){
+  const lockedSum = state.subjects
+    .filter(s => s.locked)
+    .reduce((a, s) => a + s.value, 0);
+
+  const freeIdx = [];
+  state.subjects.forEach((s, i) => { if (!s.locked) freeIdx.push(i); });
+  if (!freeIdx.length) return true;
+
+  const rem = state.total - lockedSum;
+  const freeFull = freeIdx.reduce((a, i) => a + state.subjects[i].full, 0);
+  if (rem < 0 || rem > freeFull) return false;
+
+  const weights = freeIdx.map(i =>
+    Math.max(state.subjects[i].value, state.subjects[i].full * 0.25)
+  );
+  const fulls = freeIdx.map(i => state.subjects[i].full);
+  const vals = distribute(rem, fulls, weights);
+  freeIdx.forEach((i, k) => { state.subjects[i].value = vals[k]; });
+  return true;
+}
+
+/* =========================================================
+   手改某科
+   ========================================================= */
+function handleInput(i, raw){
+  const s = state.subjects[i];
+  if (raw === '' || raw === null) return;
+
+  let v = Number(raw);
+  if (!isFinite(v)) return;
+  v = Math.round(v);
+  if (v < 0) v = 0;
+  if (v > s.full) v = s.full;
+
+  const prevValue = s.value;
+  const prevLocked = s.locked;
+
+  let lockedSum = 0;
+  state.subjects.forEach((x, j) => {
+    if (j !== i && x.locked) lockedSum += x.value;
+  });
+
+  const rem = state.total - lockedSum - v;
+
+  const freeIdx = [];
+  state.subjects.forEach((x, j) => {
+    if (j !== i && !x.locked) freeIdx.push(j);
+  });
+  const freeFull = freeIdx.reduce((a, j) => a + state.subjects[j].full, 0);
+
+  if (rem < 0){
+    toast('已超出目标总分 ' + state.total + '，请调低分数');
+    s.value = prevValue;
+    s.locked = prevLocked;
+    updateUI();
+    return;
+  }
+  if (rem > freeFull){
+    toast('剩余 ' + rem + ' 分，其他科目最多只能承载 ' + freeFull + ' 分');
+    s.value = prevValue;
+    s.locked = prevLocked;
+    updateUI();
+    return;
+  }
+
+  s.value = v;
+  s.locked = true;
+
+  if (freeIdx.length){
+    const weights = freeIdx.map(j =>
+      Math.max(state.subjects[j].value, state.subjects[j].full * 0.25)
+    );
+    const fulls = freeIdx.map(j => state.subjects[j].full);
+    const vals = distribute(rem, fulls, weights);
+    freeIdx.forEach((j, k) => { state.subjects[j].value = vals[k]; });
+  }
+
+  updateUI();
+}
+
+/* =========================================================
+   锁定 / 解锁
+   ========================================================= */
+function toggleLock(i){
+  const s = state.subjects[i];
+  if (s.locked){
+    s.locked = false;
+    const ok = redistributeAll();
+    if (!ok){
+      s.locked = true;
+      toast('解锁后剩余分数无法分配，请先调整其他科目');
+    }
+  } else {
+    s.locked = true;
+  }
+  updateUI();
+}
+
+/* =========================================================
+   自定义下拉
+   ========================================================= */
+const dropdown = document.getElementById('templateDropdown');
+const trigger = document.getElementById('dropdownTrigger');
+const menu = document.getElementById('dropdownMenu');
+const labelEl = document.getElementById('dropdownLabel');
+
+function buildDropdown(){
+  menu.innerHTML = '';
+  Object.keys(TEMPLATES).forEach(k => {
+    const opt = document.createElement('div');
+    opt.className = 'dropdown-option' + (k === state.template ? ' active' : '');
+    opt.dataset.key = k;
+    opt.tabIndex = -1;
+    opt.setAttribute('role', 'option');
+    opt.setAttribute('aria-selected', String(k === state.template));
+    const dot = document.createElement('span');
+    dot.className = 'dot';
+    const txt = document.createElement('span');
+    txt.textContent = TEMPLATES[k].label;
+    opt.append(dot, txt);
+    opt.addEventListener('click', () => selectTemplate(k));
+    menu.appendChild(opt);
+  });
+  labelEl.textContent = TEMPLATES[state.template].label;
+}
+
+function openDropdown(){
+  dropdown.classList.add('open');
+  trigger.setAttribute('aria-expanded', 'true');
+  const active = menu.querySelector('.dropdown-option.active') || menu.firstElementChild;
+  if (active) active.focus();
+}
+
+function closeDropdown(){
+  dropdown.classList.remove('open');
+  trigger.setAttribute('aria-expanded', 'false');
+}
+
+function toggleDropdown(){
+  dropdown.classList.contains('open') ? closeDropdown() : openDropdown();
+}
+
+function selectTemplate(key){
+  closeDropdown();
+  if (key === state.template) return;
+
+  state.template = key;
+  state.total = TEMPLATES[key].defaultTotal;
+  document.getElementById('totalInput').value = state.total;
+
+  buildSubjects();
+  renderSubjects();
+  generateScores();
+  updateUI();
+
+  labelEl.textContent = TEMPLATES[key].label;
+  menu.querySelectorAll('.dropdown-option').forEach(o => {
+    const on = o.dataset.key === key;
+    o.classList.toggle('active', on);
+    o.setAttribute('aria-selected', String(on));
+  });
+}
+
+/* =========================================================
+   初始化
+   ========================================================= */
+function init(){
+  buildDropdown();
+
+  trigger.addEventListener('click', e => {
+    e.stopPropagation();
+    toggleDropdown();
+  });
+  trigger.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      openDropdown();
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (!dropdown.contains(e.target)) closeDropdown();
+  });
+
+  menu.addEventListener('keydown', e => {
+    const opts = Array.from(menu.querySelectorAll('.dropdown-option'));
+    const idx = opts.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown'){
+      e.preventDefault();
+      opts[(idx + 1) % opts.length]?.focus();
+    } else if (e.key === 'ArrowUp'){
+      e.preventDefault();
+      opts[(idx - 1 + opts.length) % opts.length]?.focus();
+    } else if (e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      if (document.activeElement.classList.contains('dropdown-option')){
+        selectTemplate(document.activeElement.dataset.key);
+      }
+    } else if (e.key === 'Escape'){
+      closeDropdown();
+      trigger.focus();
+    }
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeDropdown();
+  });
+
+  const totalInput = document.getElementById('totalInput');
+  totalInput.value = state.total;
+
+  totalInput.addEventListener('change', () => {
+    const fullSum = state.subjects.reduce((a, s) => a + s.full, 0);
+    let v = Math.round(Number(totalInput.value));
+    if (!isFinite(v) || v < 0) v = 0;
+    if (v > fullSum){
+      v = fullSum;
+      toast('该科目组合满分为 ' + fullSum + ' 分');
+    }
+    state.total = v;
+    totalInput.value = v;
+    generateScores();
+    updateUI();
+  });
+
+  document.getElementById('generateBtn').addEventListener('click', () => {
+    generateScores();
+    updateUI();
+  });
+
+  document.getElementById('unlockBtn').addEventListener('click', () => {
+    state.subjects.forEach(s => { s.locked = false; });
+    updateUI();
+    toast('已解锁全部科目，改动任意一科将重新分配所有科目');
+  });
+
+  buildSubjects();
+  renderSubjects();
+  generateScores();
+  updateUI();
+}
+
+init();
+</script>
+</body>
+</html>
