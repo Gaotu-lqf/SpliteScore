@@ -50,7 +50,11 @@
     box-shadow:0 5px 22px rgba(30,40,90,.06);
   }
   .field{display:flex;flex-direction:column;gap:5px;}
-  .field label{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.3px;}
+  .field-label-row{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:8px;flex-wrap:nowrap;
+  }
+  .field label{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.3px;white-space:nowrap;}
   .field input{
     height:36px;
     border-radius:9px;
@@ -68,10 +72,30 @@
     border-color:#8b8bf0;background:#fff;
     box-shadow:0 0 0 3px rgba(99,102,241,.12);
   }
+  .quick-chips{display:flex;gap:4px;flex:none;}
+  .chip{
+    border:1px solid #e0e2f5;
+    background:#f6f7ff;
+    color:#6366f1;
+    font-size:10.5px;
+    font-weight:700;
+    font-family:inherit;
+    padding:2px 7px;
+    border-radius:99px;
+    cursor:pointer;
+    transition:.15s;
+    line-height:1.3;
+  }
+  .chip:hover{background:#eef0ff;border-color:#c7cdf5;}
+  .chip.active{
+    background:linear-gradient(135deg,#6366f1,#8b5cf6);
+    color:#fff;border-color:transparent;
+    box-shadow:0 2px 6px rgba(99,102,241,.3);
+  }
   .btn{
-    height:36px;padding:0 18px;border-radius:9px;border:none;
-    font-size:13.5px;font-weight:600;font-family:inherit;cursor:pointer;
-    transition:.18s;
+    height:36px;padding:0 16px;border-radius:9px;border:none;
+    font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;
+    transition:.18s;white-space:nowrap;
   }
   .btn-primary{
     background:linear-gradient(135deg,#6366f1,#8b5cf6);
@@ -84,9 +108,13 @@
     background:#f3f4fb;color:#5b5bd6;border:1.5px solid #e0e2f5;
   }
   .btn-ghost:hover{background:#eaecfa;}
+  .btn-export{
+    background:#fff;color:#4f46e5;border:1.5px solid #c7d2fe;
+  }
+  .btn-export:hover{background:#f6f7ff;border-color:#a5b4fc;}
 
   /* ---------- 自定义下拉框 ---------- */
-  .dropdown{position:relative;min-width:255px;}
+  .dropdown{position:relative;min-width:240px;}
   .dropdown-trigger{
     width:100%;height:36px;
     display:flex;align-items:center;justify-content:space-between;gap:8px;
@@ -173,6 +201,7 @@
     box-shadow:0 3px 14px rgba(30,40,90,.05);
     overflow:hidden;
   }
+  .sum-block.total{overflow:visible;}
   .sum-block::before{
     content:"";
     position:absolute;left:0;top:11px;bottom:11px;width:3.5px;
@@ -191,6 +220,55 @@
   }
   .sum-block.total .sum-val{color:#4f46e5;}
   .sum-block.rate .sum-val{color:#0ea5a5;}
+
+  /* ---------- 目标总分小标签提示 ---------- */
+  .total-tip{
+    position:absolute;
+    top:-11px;
+    right:10px;
+    padding:3px 10px;
+    border-radius:99px;
+    background:#fff7ed;
+    border:1px solid #fdba74;
+    color:#c2410c;
+    font-size:10.5px;
+    font-weight:700;
+    line-height:1.35;
+    white-space:nowrap;
+    opacity:0;
+    transform:translateY(5px) scale(.96);
+    transition:opacity .22s ease, transform .22s cubic-bezier(.4,0,.2,1);
+    pointer-events:none;
+    box-shadow:0 4px 12px rgba(194,65,12,.16);
+    z-index:8;
+  }
+  .total-tip.show{
+    opacity:1;
+    transform:translateY(0) scale(1);
+  }
+
+  /* ---------- 偏差提示条 ---------- */
+  .diff-bar{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    margin-top:10px;
+    padding:8px 14px;
+    border-radius:11px;
+    font-size:12px;font-weight:600;
+    border:1.5px solid;
+    transition:.2s;
+  }
+  .diff-bar[hidden]{display:none;}
+  .diff-bar.over{background:#fff8f0;border-color:#fcd34d;color:#b45309;}
+  .diff-bar.under{background:#f0f7ff;border-color:#93c5fd;color:#1d4ed8;}
+  .diff-fix{
+    flex:none;
+    padding:5px 14px;border-radius:8px;border:none;
+    font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer;
+    background:#fff;color:inherit;
+    box-shadow:0 1px 4px rgba(0,0,0,.09);
+    transition:.15s;
+  }
+  .diff-fix:hover{transform:translateY(-1px);box-shadow:0 3px 9px rgba(0,0,0,.14);}
 
   /* ---------- 科目卡片 ---------- */
   .subjects{
@@ -342,6 +420,7 @@
     .btn{flex:1 1 auto;}
     .hero h1{font-size:19px;}
     .sum-val{font-size:19px;}
+    .total-tip{font-size:10px;padding:3px 8px;right:6px;}
   }
 </style>
 </head>
@@ -355,7 +434,10 @@
 
   <section class="panel">
     <div class="field">
-      <label>目标总分</label>
+      <div class="field-label-row">
+        <label>目标总分</label>
+        <div class="quick-chips" id="quickChips"></div>
+      </div>
       <input id="totalInput" type="number" min="0" step="1" value="380">
     </div>
     <div class="field">
@@ -374,12 +456,14 @@
     </div>
     <button class="btn btn-primary" id="generateBtn">随机生成</button>
     <button class="btn btn-ghost" id="unlockBtn">全部解锁</button>
+    <button class="btn btn-export" id="exportBtn">导出图片</button>
   </section>
 
   <section class="summary">
     <div class="sum-block total">
       <div class="sum-label">目标总分</div>
       <div class="sum-val" id="sumTotal">380</div>
+      <span class="total-tip" id="totalTip">各科总和低于总分，请更改</span>
     </div>
     <div class="sum-block rate">
       <div class="sum-label">整体得分率</div>
@@ -387,14 +471,19 @@
     </div>
   </section>
 
+  <div class="diff-bar" id="diffBar" hidden>
+    <span id="diffText"></span>
+    <button type="button" class="diff-fix" id="autoFixBtn">自动补齐</button>
+  </div>
+
   <section class="subjects" id="subjects"></section>
 
   <footer class="tips">
     <div>• <b>双击科目名称</b>即可重命名（回车确认，Esc 取消）。</div>
-    <div>• 修改任意一科分数后，该科会被 <b>锁定</b>，剩余总分按各科现有比例自动分配给未锁定的科目。</div>
+    <div>• 修改任意一科分数后，该科会被 <b>锁定</b>，剩余总分按各科现有比例自动分配给未锁定的科目；若分不完，上方会出现偏差提示，点「自动补齐」即可拉回总分。</div>
     <div>• 点击科目右侧的 🔒 可解锁，解锁后该科会参与下一次的重新分配。</div>
     <div>• 专业课分值按科目数量区分：<b>1 门</b>为 150 分或 300 分，<b>2 门</b>则各 150 分。</div>
-    <div>• 生成的分数仅为满足总分的随机组合，各科得分率已限制在常见区间内，仅供参考。</div>
+    <div>• 「导出图片」会生成一张干净的 PNG，可直接保存或分享。</div>
   </footer>
 
 </div>
@@ -453,6 +542,8 @@ const state = {
   subjects: []
 };
 let els = [];
+let lastLowState = false;
+let totalTipTimer = null;
 
 /* =========================================================
    工具函数
@@ -470,6 +561,14 @@ function toast(msg){
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function showTotalTip(){
+  const tip = document.getElementById('totalTip');
+  if (!tip) return;
+  tip.classList.add('show');
+  clearTimeout(totalTipTimer);
+  totalTipTimer = setTimeout(() => tip.classList.remove('show'), 1500);
 }
 
 /* =========================================================
@@ -647,6 +746,28 @@ function updateUI(){
   document.getElementById('sumTotal').textContent = state.total;
   document.getElementById('sumRate').textContent =
     fullSum ? ((sum / fullSum) * 100).toFixed(1) + '%' : '0%';
+
+  // 偏差提示条
+  const diff = state.total - sum;
+  const bar = document.getElementById('diffBar');
+  const txt = document.getElementById('diffText');
+  if (diff === 0){
+    bar.hidden = true;
+  } else {
+    bar.hidden = false;
+    bar.classList.toggle('over', diff < 0);
+    bar.classList.toggle('under', diff > 0);
+    txt.textContent = diff < 0
+      ? '当前合计比目标总分多 ' + (-diff) + ' 分'
+      : '当前合计比目标总分少 ' + diff + ' 分';
+  }
+
+  // 总和低于总分 → 总分上方冒小标签，1.5 秒后消失
+  const isLow = sum < state.total;
+  if (isLow && !lastLowState) showTotalTip();
+  lastLowState = isLow;
+
+  syncChips();
 }
 
 /* =========================================================
@@ -733,7 +854,7 @@ function redistributeAll(){
 }
 
 /* =========================================================
-   手改某科
+   手改某科（允许偏差）
    ========================================================= */
 function handleInput(i, raw){
   const s = state.subjects[i];
@@ -745,8 +866,8 @@ function handleInput(i, raw){
   if (v < 0) v = 0;
   if (v > s.full) v = s.full;
 
-  const prevValue = s.value;
-  const prevLocked = s.locked;
+  s.value = v;
+  s.locked = true;
 
   let lockedSum = 0;
   state.subjects.forEach((x, j) => {
@@ -761,34 +882,54 @@ function handleInput(i, raw){
   });
   const freeFull = freeIdx.reduce((a, j) => a + state.subjects[j].full, 0);
 
-  if (rem < 0){
-    toast('已超出目标总分 ' + state.total + '，请调低分数');
-    s.value = prevValue;
-    s.locked = prevLocked;
-    updateUI();
-    return;
-  }
-  if (rem > freeFull){
-    toast('剩余 ' + rem + ' 分，其他科目最多只能承载 ' + freeFull + ' 分');
-    s.value = prevValue;
-    s.locked = prevLocked;
-    updateUI();
-    return;
-  }
-
-  s.value = v;
-  s.locked = true;
-
   if (freeIdx.length){
+    const actual = Math.max(0, Math.min(rem, freeFull));
     const weights = freeIdx.map(j =>
       Math.max(state.subjects[j].value, state.subjects[j].full * 0.25)
     );
     const fulls = freeIdx.map(j => state.subjects[j].full);
-    const vals = distribute(rem, fulls, weights);
+    const vals = distribute(actual, fulls, weights);
     freeIdx.forEach((j, k) => { state.subjects[j].value = vals[k]; });
   }
 
   updateUI();
+}
+
+/* =========================================================
+   自动补齐
+   ========================================================= */
+function autoFix(){
+  const sum = state.subjects.reduce((a, s) => a + s.value, 0);
+  const diff = state.total - sum;
+  if (diff === 0){ toast('分数已与目标总分一致'); return; }
+
+  const freeIdx = [];
+  state.subjects.forEach((s, i) => { if (!s.locked) freeIdx.push(i); });
+
+  if (freeIdx.length){
+    const freeSum = freeIdx.reduce((a, i) => a + state.subjects[i].value, 0);
+    const freeFull = freeIdx.reduce((a, i) => a + state.subjects[i].full, 0);
+    const newFreeSum = freeSum + diff;
+    if (newFreeSum >= 0 && newFreeSum <= freeFull){
+      const weights = freeIdx.map(i =>
+        Math.max(state.subjects[i].value, state.subjects[i].full * 0.25)
+      );
+      const fulls = freeIdx.map(i => state.subjects[i].full);
+      const vals = distribute(newFreeSum, fulls, weights);
+      freeIdx.forEach((i, k) => { state.subjects[i].value = vals[k]; });
+      updateUI();
+      toast('已用未锁定科目自动补齐');
+      return;
+    }
+  }
+
+  state.subjects.forEach(s => { s.locked = false; });
+  const fulls = state.subjects.map(s => s.full);
+  const weights = state.subjects.map(s => Math.max(s.value, s.full * 0.25));
+  const vals = distribute(state.total, fulls, weights);
+  state.subjects.forEach((s, i) => { s.value = vals[i]; });
+  updateUI();
+  toast('已重新分配全部科目以匹配总分');
 }
 
 /* =========================================================
@@ -807,6 +948,238 @@ function toggleLock(i){
     s.locked = true;
   }
   updateUI();
+}
+
+/* =========================================================
+   快捷总分 chips
+   ========================================================= */
+function renderChips(){
+  const wrap = document.getElementById('quickChips');
+  if (!wrap) return;
+  const tpl = TEMPLATES[state.template];
+  const fullSum = tpl.subjects.reduce((a, s) => a + s.full, 0);
+  let vals;
+  if (fullSum <= 300){
+    vals = [250, 270, 290];
+  } else if (fullSum >= 500){
+    vals = [360, 380, 400, 420];
+  } else {
+    vals = [fullSum - 60, fullSum - 30, fullSum];
+  }
+  wrap.innerHTML = '';
+  vals.forEach(v => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip';
+    b.dataset.val = String(v);
+    b.textContent = String(v);
+    b.addEventListener('click', () => {
+      const totalInput = document.getElementById('totalInput');
+      totalInput.value = v;
+      totalInput.dispatchEvent(new Event('change'));
+    });
+    wrap.appendChild(b);
+  });
+  syncChips();
+}
+
+function syncChips(){
+  const v = String(state.total);
+  document.querySelectorAll('.chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.val === v);
+  });
+}
+
+/* =========================================================
+   导出图片
+   ========================================================= */
+function pathRoundRect(ctx, x, y, w, h, r){
+  if (w < 2 * r) r = w / 2;
+  if (h < 2 * r) r = h / 2;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function exportImage(){
+  try {
+    const n = state.subjects.length;
+    const cols = (n === 4 || n === 2) ? 2 : n;
+    const rows = Math.ceil(n / cols);
+
+    const W = 820;
+    const padX = 30, padTop = 26, padBottom = 26;
+    const titleH = 46;
+    const summaryH = 62;
+    const gapY = 12;
+    const cardH = 108;
+    const cardGap = 12;
+    const FONT = '"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif';
+
+    const contentW = W - padX * 2;
+    const cardW = cols === 2 ? (contentW - cardGap) / 2 : contentW;
+    const contentH = titleH + gapY + summaryH + gapY + rows * cardH + (rows - 1) * cardGap;
+    const H = padTop + contentH + padBottom;
+
+    const dpr = 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+    bgGrad.addColorStop(0, '#f4f5fc');
+    bgGrad.addColorStop(1, '#f1eefb');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    let y = padTop;
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = '700 23px ' + FONT;
+    const tg = ctx.createLinearGradient(W/2 - 150, 0, W/2 + 150, 0);
+    tg.addColorStop(0, '#4f46e5');
+    tg.addColorStop(.6, '#8b5cf6');
+    tg.addColorStop(1, '#d946ef');
+    ctx.fillStyle = tg;
+    ctx.fillText('考研目标分数拆解', W/2, y + 30);
+    y += titleH + gapY;
+
+    const sum = state.subjects.reduce((a, s) => a + s.value, 0);
+    const fullSum = state.subjects.reduce((a, s) => a + s.full, 0);
+    const rate = fullSum ? sum / fullSum : 0;
+    const sumW = (contentW - cardGap) / 2;
+
+    function drawSumBlock(x, yy, w, h, label, val, valColor, c1, c2){
+      pathRoundRect(ctx, x, yy, w, h, 13);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.strokeStyle = '#e6e9f2';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      const g = ctx.createLinearGradient(0, yy, 0, yy + h);
+      g.addColorStop(0, c1);
+      g.addColorStop(1, c2);
+      ctx.fillStyle = g;
+      pathRoundRect(ctx, x, yy + 11, 4, h - 22, 2);
+      ctx.fill();
+
+      ctx.textAlign = 'left';
+      ctx.font = '600 11.5px ' + FONT;
+      ctx.fillStyle = '#6c7488';
+      ctx.fillText(label, x + 18, yy + 22);
+
+      ctx.font = '800 22px ' + FONT;
+      ctx.fillStyle = valColor;
+      ctx.fillText(val, x + 18, yy + h - 14);
+    }
+
+    drawSumBlock(padX, y, sumW, summaryH, '目标总分', String(state.total), '#4f46e5', '#818cf8', '#6366f1');
+    drawSumBlock(padX + sumW + cardGap, y, sumW, summaryH, '整体得分率',
+                 (rate * 100).toFixed(1) + '%', '#0ea5a5', '#34d399', '#0ea5a5');
+    y += summaryH + gapY;
+
+    function drawCard(x, yy, w, h, s){
+      const locked = s.locked;
+      pathRoundRect(ctx, x, yy, w, h, 13);
+      ctx.fillStyle = locked ? '#f8f9ff' : '#ffffff';
+      ctx.fill();
+      ctx.strokeStyle = locked ? '#c7d2fe' : '#e6e9f2';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      const p = 15;
+
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.font = '700 14px ' + FONT;
+      ctx.fillStyle = '#1b2030';
+      let name = s.name;
+      const maxNameW = w - p * 2 - 58;
+      while (ctx.measureText(name).width > maxNameW && name.length > 1){
+        name = name.slice(0, -1);
+      }
+      if (name !== s.name) name = name.slice(0, -1) + '…';
+      ctx.fillText(name, x + p, yy + 26);
+
+      ctx.textAlign = 'right';
+      ctx.font = '600 11px ' + FONT;
+      ctx.fillStyle = '#6c7488';
+      ctx.fillText('满分 ' + s.full, x + w - p, yy + 26);
+
+      const r = s.full ? s.value / s.full : 0;
+      const valStr = String(s.value);
+      ctx.textAlign = 'left';
+      ctx.font = '800 26px ' + FONT;
+      ctx.fillStyle = '#4f46e5';
+      ctx.fillText(valStr, x + p, yy + 62);
+      const scoreW = ctx.measureText(valStr).width;
+      ctx.font = '600 11.5px ' + FONT;
+      ctx.fillStyle = '#6c7488';
+      ctx.fillText('分', x + p + scoreW + 5, yy + 62);
+
+      const barY = yy + 76, barH = 6, barW = w - p * 2;
+      pathRoundRect(ctx, x + p, barY, barW, barH, 3);
+      ctx.fillStyle = '#eef1f8';
+      ctx.fill();
+
+      const hue = Math.round(Math.max(0, Math.min(1, r)) * 125);
+      const fw = barW * Math.min(r, 1);
+      if (fw > 0.5){
+        pathRoundRect(ctx, x + p, barY, fw, barH, 3);
+        const fg = ctx.createLinearGradient(x + p, 0, x + p + fw, 0);
+        fg.addColorStop(0, 'hsl(' + hue + ' 78% 62%)');
+        fg.addColorStop(1, 'hsl(' + hue + ' 78% 50%)');
+        ctx.fillStyle = fg;
+        ctx.fill();
+      }
+
+      ctx.font = '600 10.5px ' + FONT;
+      ctx.fillStyle = '#6c7488';
+      ctx.textAlign = 'left';
+      ctx.fillText('得分率 ' + (r * 100).toFixed(1) + '%', x + p, yy + h - 12);
+      ctx.textAlign = 'right';
+      ctx.fillText('距满分 ' + (s.full - s.value) + ' 分', x + w - p, yy + h - 12);
+    }
+
+    state.subjects.forEach((s, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const cx = padX + col * (cardW + cardGap);
+      const cy = y + row * (cardH + cardGap);
+      drawCard(cx, cy, cardW, cardH, s);
+    });
+
+    canvas.toBlob(blob => {
+      if (!blob){
+        toast('导出失败，请重试');
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const d = new Date();
+      const stamp = d.getFullYear()
+        + String(d.getMonth() + 1).padStart(2, '0')
+        + String(d.getDate()).padStart(2, '0');
+      a.download = '考研分数拆解_' + state.total + '分_' + stamp + '.png';
+      a.href = url;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+      toast('图片已导出');
+    }, 'image/png');
+  } catch (err){
+    console.error(err);
+    toast('导出失败，请重试');
+  }
 }
 
 /* =========================================================
@@ -865,6 +1238,7 @@ function selectTemplate(key){
   renderSubjects();
   generateScores();
   updateUI();
+  renderChips();
 
   labelEl.textContent = TEMPLATES[key].label;
   menu.querySelectorAll('.dropdown-option').forEach(o => {
@@ -934,6 +1308,7 @@ function init(){
     totalInput.value = v;
     generateScores();
     updateUI();
+    syncChips();
   });
 
   document.getElementById('generateBtn').addEventListener('click', () => {
@@ -943,14 +1318,20 @@ function init(){
 
   document.getElementById('unlockBtn').addEventListener('click', () => {
     state.subjects.forEach(s => { s.locked = false; });
+    redistributeAll();
     updateUI();
-    toast('已解锁全部科目，改动任意一科将重新分配所有科目');
+    toast('已解锁全部科目，并重新分配分数');
   });
+
+  document.getElementById('autoFixBtn').addEventListener('click', autoFix);
+
+  document.getElementById('exportBtn').addEventListener('click', exportImage);
 
   buildSubjects();
   renderSubjects();
   generateScores();
   updateUI();
+  renderChips();
 }
 
 init();
