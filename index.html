@@ -88,7 +88,7 @@
   }
   .btn-ghost:hover{background:#eaecfa;}
 
-  /* ---------- 自定义下拉框（贴合主题） ---------- */
+  /* ---------- 自定义下拉框 ---------- */
   .dropdown{position:relative;min-width:290px;}
   .dropdown-trigger{
     width:100%;height:42px;
@@ -161,27 +161,40 @@
     box-shadow:0 0 0 3px rgba(99,102,241,.18);
   }
 
-  /* ---------- 汇总条 ---------- */
+  /* ---------- 汇总条（两栏均分） ---------- */
   .summary{
-    display:flex;gap:12px;margin-top:16px;flex-wrap:wrap;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-top:16px;
   }
   .sum-block{
-    flex:1 1 150px;
+    position:relative;
     background:#fff;
     border:1px solid var(--line);
     border-radius:15px;
-    padding:14px 18px;
+    padding:15px 20px 15px 22px;
     box-shadow:0 4px 18px rgba(30,40,90,.05);
+    overflow:hidden;
   }
-  .sum-label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.4px;margin-bottom:5px;}
+  .sum-block::before{
+    content:"";
+    position:absolute;left:0;top:14px;bottom:14px;width:4px;
+    border-radius:0 4px 4px 0;
+  }
+  .sum-block.total::before{background:linear-gradient(180deg,#818cf8,#6366f1);}
+  .sum-block.rate::before{background:linear-gradient(180deg,#34d399,#0ea5a5);}
+  .sum-label{
+    font-size:12px;color:var(--muted);font-weight:600;
+    letter-spacing:.4px;margin-bottom:5px;
+  }
   .sum-val{
-    font-size:23px;font-weight:800;
+    font-size:26px;font-weight:800;
     font-variant-numeric:tabular-nums;
-    color:#4f46e5;
-    letter-spacing:-.5px;
+    letter-spacing:-.5px;line-height:1.15;
   }
-  .sum-block:nth-child(2) .sum-val{color:#0ea5a5;}
-  .sum-block:nth-child(3) .sum-val{color:#d9468c;}
+  .sum-block.total .sum-val{color:#4f46e5;}
+  .sum-block.rate .sum-val{color:#0ea5a5;}
 
   /* ---------- 科目卡片 ---------- */
   .subjects{
@@ -324,6 +337,8 @@
     .field .dropdown{min-width:100%;width:100%;}
     .btn{flex:1 1 auto;}
     .hero h1{font-size:22px;}
+    .sum-block{padding:13px 14px 13px 18px;}
+    .sum-val{font-size:22px;}
   }
 </style>
 </head>
@@ -359,15 +374,11 @@
   </section>
 
   <section class="summary">
-    <div class="sum-block">
+    <div class="sum-block total">
       <div class="sum-label">目标总分</div>
       <div class="sum-val" id="sumTotal">380</div>
     </div>
-    <div class="sum-block">
-      <div class="sum-label">当前合计</div>
-      <div class="sum-val" id="sumCurrent">380</div>
-    </div>
-    <div class="sum-block">
+    <div class="sum-block rate">
       <div class="sum-label">整体得分率</div>
       <div class="sum-val" id="sumRate">76.0%</div>
     </div>
@@ -628,7 +639,6 @@ function updateUI(){
   const sum = state.subjects.reduce((a, s) => a + s.value, 0);
   const fullSum = state.subjects.reduce((a, s) => a + s.full, 0);
   document.getElementById('sumTotal').textContent = state.total;
-  document.getElementById('sumCurrent').textContent = sum;
   document.getElementById('sumRate').textContent =
     fullSum ? ((sum / fullSum) * 100).toFixed(1) + '%' : '0%';
 }
